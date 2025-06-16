@@ -168,6 +168,14 @@ class PostgreSQLDB:
             logger.error(f"Failed to enable pgvector extension: {e}")
             raise
 
+        # Ensure age extension is enabled
+        try:
+            await self.execute("CREATE EXTENSION IF NOT EXISTS age;")
+            logger.info("Ensured age extension is enabled in the database")
+        except Exception as e:
+            logger.error(f"Failed to enable age extension: {e}")
+            raise
+
         # First create all tables
         for k, v in TABLES.items():
             try:
