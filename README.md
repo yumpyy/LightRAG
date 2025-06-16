@@ -39,7 +39,7 @@
 </div>
 
 ## 🎉 News
-
+- [X] [2025.06.05]🎯📢LightRAG now supports multi-modal data handling through MinerU integration, enabling comprehensive document parsing and RAG capabilities across diverse formats including PDFs, images, Office documents, tables, and formulas. Please refer to the new [multimodal section](https://github.com/HKUDS/LightRAG/?tab=readme-ov-file#multimodal-document-processing-mineru-integration) for details.
 - [X] [2025.03.18]🎯📢LightRAG now supports citation functionality, enabling proper source attribution.
 - [X] [2025.02.05]🎯📢Our team has released [VideoRAG](https://github.com/HKUDS/VideoRAG) understanding extremely long-context videos.
 - [X] [2025.01.13]🎯📢Our team has released [MiniRAG](https://github.com/HKUDS/MiniRAG) making RAG simpler with small models.
@@ -149,6 +149,12 @@ For a streaming response implementation example, please see `examples/lightrag_o
 
 > If you would like to integrate LightRAG into your project, we recommend utilizing the REST API provided by the LightRAG Server. LightRAG Core is typically intended for embedded applications or for researchers who wish to conduct studies and evaluations.
 
+### ⚠️ Important: Initialization Requirements
+
+**LightRAG requires explicit initialization before use.** You must call both `await rag.initialize_storages()` and `await initialize_pipeline_status()` after creating a LightRAG instance, otherwise you will encounter errors like:
+- `AttributeError: __aenter__` - if storages are not initialized
+- `KeyError: 'history_messages'` - if pipeline status is not initialized
+
 ### A Simple Program
 
 Use the below Python snippet to initialize LightRAG, insert text to it, and perform queries:
@@ -173,8 +179,9 @@ async def initialize_rag():
         embedding_func=openai_embed,
         llm_model_func=gpt_4o_mini_complete,
     )
-    await rag.initialize_storages()
-    await initialize_pipeline_status()
+    # IMPORTANT: Both initialization calls are required!
+    await rag.initialize_storages()  # Initialize storage backends
+    await initialize_pipeline_status()  # Initialize processing pipeline
     return rag
 
 async def main():
@@ -1051,6 +1058,32 @@ When merging entities:
 
 </details>
 
+## Multimodal Document Processing (MinerU Integration)
+
+LightRAG now supports comprehensive multi-modal document processing through [MinerU](https://github.com/opendatalab/MinerU) integration, enabling advanced parsing and retrieval-augmented generation (RAG) capabilities. This powerful feature allows you to handle multi-modal documents seamlessly, extracting structured content—including text, images, tables, and formulas—from various document formats for integration into your RAG pipeline.
+
+**Key Features:**
+- **Multimodal Document Handling**: Process complex documents containing mixed content types (text, images, tables, formulas)
+- **Comprehensive Format Support**: Parse PDFs, images, DOC/DOCX/PPT/PPTX, and additional file types
+- **Multi-Element Extraction**: Extract and index text, images, tables, formulas, and document structure
+- **Multimodal Retrieval**: Query and retrieve diverse content types (text, images, tables, formulas) within RAG workflows
+- **Seamless Integration**: Works smoothly with LightRAG core and RAG-Anything frameworks
+
+**Quick Start:**
+1. Install dependencies:
+   ```bash
+   pip install "magic-pdf[full]>=1.2.2" huggingface_hub
+   ```
+2. Download MinerU model weights (refer to [MinerU Integration Guide](docs/mineru_integration_en.md))
+3. Process multi-modal documents using the new MineruParser or RAG-Anything's process_document_complete:
+   ```python
+   from lightrag.mineru_parser import MineruParser
+   content_list, md_content = MineruParser.parse_pdf('path/to/document.pdf', 'output_dir')
+   # or for any file type:
+   content_list, md_content = MineruParser.parse_document('path/to/file', 'auto', 'output_dir')
+   ```
+4. Query multimodal content with LightRAG refer to [docs/mineru_integration_en.md](docs/mineru_integration_en.md).
+
 ## Token Usage Tracking
 
 <details>
@@ -1474,6 +1507,33 @@ Thank you to all our contributors!
 <a href="https://github.com/HKUDS/LightRAG/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=HKUDS/LightRAG" />
 </a>
+
+## Troubleshooting
+
+### Common Initialization Errors
+
+If you encounter these errors when using LightRAG:
+
+1. **`AttributeError: __aenter__`**
+   - **Cause**: Storage backends not initialized
+   - **Solution**: Call `await rag.initialize_storages()` after creating the LightRAG instance
+
+2. **`KeyError: 'history_messages'`**
+   - **Cause**: Pipeline status not initialized
+   - **Solution**: Call `await initialize_pipeline_status()` after initializing storages
+
+3. **Both errors in sequence**
+   - **Cause**: Neither initialization method was called
+   - **Solution**: Always follow this pattern:
+   ```python
+   rag = LightRAG(...)
+   await rag.initialize_storages()
+   await initialize_pipeline_status()
+   ```
+
+### Model Switching Issues
+
+When switching between different embedding models, you must clear the data directory to avoid errors. The only file you may want to preserve is `kv_store_llm_response_cache.json` if you wish to retain the LLM cache.
 
 ## 🌟Citation
 
